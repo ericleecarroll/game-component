@@ -103,12 +103,11 @@ public class GameTest {
             PickNumberState pickNumberState = PickNumberState.class.cast(gameState);
             pickNumberState.incrementGuessCount();
 
-            // make a guess and, if correct, move to the next round
+            // make a guess and, if correct, spawn a new victory-lap round
             int guess = new Random().ints(pickNumberState.getLow(), pickNumberState.getHigh()+1)
                     .findFirst().getAsInt();
             if (guess == pickNumberState.getAnswer()) {
-                pickNumberState.incrementCorrectCount();
-                return Optional.empty();
+                return Optional.of(new VictoryLapRound());
             }
 
             // if too high, our guess becomes the new high bound
@@ -121,6 +120,20 @@ public class GameTest {
 
             // repeat the guess-number round
             return Optional.of(this);
+        }
+    }
+
+    // Increment the correct-guess count and return to the regularly scheduled rounds
+    //
+    private static class VictoryLapRound implements GameRound {
+
+        @Override
+        public Optional<GameRound> perform(GameState gameState) {
+
+            // expect a pick-number state
+            PickNumberState pickNumberState = PickNumberState.class.cast(gameState);
+            pickNumberState.incrementCorrectCount();
+            return Optional.empty();
         }
     }
 

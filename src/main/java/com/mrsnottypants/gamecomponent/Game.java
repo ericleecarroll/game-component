@@ -1,18 +1,21 @@
 package com.mrsnottypants.gamecomponent;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * The structure of a game - its rounds
+ * Games are structured as an ordered series of rounds
+ * During normal play, a round may ask to repeat itself, or spawn a new round type
+ * After the final round, the game loops back to the first round again, until game-over
  *
  * Created by Eric on 6/20/2016.
  */
 public class Game {
 
-    // games are structured as an ordered series of rounds
-    private final List<GameRound> gameRounds;
+    // the ordered series of rounds
+    private final Iterable<GameRound> gameRounds;
 
     /**
      * Construct a game from a game builder
@@ -20,41 +23,26 @@ public class Game {
      */
     private Game(Builder builder) {
 
-        // sanity check - games must consist of one or more rounds
-        if (builder.gameRounds.size() == 0) {
-            throw new IllegalStateException("Games must consist of one or more rounds");
-        }
-
-        // save the ordered series of rounds
-        this.gameRounds = builder.gameRounds;
+        // save the ordered series of rounds, decorated with looping-iterable
+        // looping-iterable loops back to the start after the final round
+        this.gameRounds = LoopingIterable.of(builder.gameRounds);
     }
 
     /**
-     * Play game by playing full sets of rounds until the game is over
+     * Play game by looping full sets of rounds until the game is over
      * @param gameState passed to rounds, and tells us when game is over
      */
     public void play(GameState gameState) {
 
-        // keep playing through the list of rounds until the game is over
-        while (!gameState.isGameOver()) {
-            playRounds(gameState);
-        }
-    }
+        // keep looping through the list of rounds until the game is over
+        Iterator<GameRound> rounds = gameRounds.iterator();
+        while (rounds.hasNext() && !gameState.isGameOver()) {
 
-    /**
-     * Play a full set of rounds.  Check if game is over after each round
-     * @param gameState passed to rounds, and tells us when game is over
-     */
-    private void playRounds(GameState gameState) {
-
-        // play through one full list of rounds
-        for (GameRound gameRound : gameRounds) {
-
-            // a round can return a new round if it wants to insert/repeat a round
-            // ex: to play cards until a player is out: return the play-card round until one player is out of cards
-            Optional<GameRound> nextRound = Optional.of(gameRound);
+            // a round can spawn a new round if it wants to insert/repeat a round
+            // ex: to play cards until there are no more cards: the play-card round returns itself until out of cards
+            Optional<GameRound> nextRound = Optional.of(rounds.next());
             while (nextRound.isPresent() && !gameState.isGameOver()) {
-                nextRound = gameRound.perform(gameState);
+                nextRound = nextRound.get().perform(gameState);
             }
         }
     }
