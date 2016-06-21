@@ -3,6 +3,8 @@ package com.mrsnottypants.gamecomponent;
 import java.util.Optional;
 
 /**
+ * A single round within a game
+ *
  * Created by Eric on 6/20/2016.
  */
 public interface GameRound {

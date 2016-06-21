@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
+ * The structure of a game - its rounds
+ *
  * Created by Eric on 6/20/2016.
  */
 public class Game {
@@ -27,6 +29,10 @@ public class Game {
         this.gameRounds = builder.gameRounds;
     }
 
+    /**
+     * Play game by playing full sets of rounds until the game is over
+     * @param gameState passed to rounds, and tells us when game is over
+     */
     public void play(GameState gameState) {
 
         // keep playing through the list of rounds until the game is over
@@ -35,6 +41,10 @@ public class Game {
         }
     }
 
+    /**
+     * Play a full set of rounds.  Check if game is over after each round
+     * @param gameState passed to rounds, and tells us when game is over
+     */
     private void playRounds(GameState gameState) {
 
         // play through one full list of rounds
