@@ -47,9 +47,18 @@ public class Game {
         }
     }
 
+    /**
+     * Return friendly string description
+     * @return description
+     */
+    @Override
+    public String toString() {
+        return String.format("Game: Rounds=%s", gameRounds.toString());
+    }
+
     // Builder for constructing a game
     //
-    public static class Builder {
+    public final static class Builder {
 
         // games are structured as an ordered series of rounds
         private final List<GameRound> gameRounds = new ArrayList<>();

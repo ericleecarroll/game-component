@@ -175,4 +175,9 @@ public class GameTest {
         // confirm at least as many guesses as correct guesses needed
         Assert.assertTrue(pickNumberState.getGuessCount() >= PickNumberState.GAME_OVER_COUNT);
     }
+
+    @Test
+    public void testToString() {
+        Assert.assertNotNull(PickNumber.INSTANCE.newGame().toString());
+    }
 }

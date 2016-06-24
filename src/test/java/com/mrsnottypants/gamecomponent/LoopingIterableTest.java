@@ -51,4 +51,13 @@ public class LoopingIterableTest {
         }
         Assert.assertTrue(noSuchElement);
     }
+
+    @Test
+    public void testToString() {
+
+        // create the iterable
+        List<String> source = Arrays.asList("Apple", "Banana", "Carrot");
+        Iterable<String> iterable = LoopingIterable.of(source);
+        Assert.assertNotNull(iterable.toString());
+    }
 }

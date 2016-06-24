@@ -42,6 +42,15 @@ public class LoopingIterable<E> implements Iterable<E> {
         return new LoopingIterator();
     }
 
+    /**
+     * Return friendly string description
+     * @return description
+     */
+    @Override
+    public String toString() {
+        return String.format("Looping:: Iterable=%s", iterable.toString());
+    }
+
     // Looping-iterator implementation
     //
     private final class LoopingIterator implements Iterator<E> {
