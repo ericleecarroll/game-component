@@ -10,6 +10,9 @@ import java.util.Optional;
  * During normal play, a round may ask to repeat itself, or spawn a new round type
  * After the final round, the game loops back to the first round again, until game-over
  *
+ * This is a flyweight class, meaning immutable with state externalized.
+ * This allows for easy reuse without synchronization
+ *
  * Created by Eric on 6/20/2016.
  */
 public class Game {

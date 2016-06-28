@@ -3,18 +3,75 @@ package com.mrsnottypants.gamecomponent;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.*;
+
 /**
  * Created by Eric on 6/24/2016.
  */
 public class PlayerTest {
 
-    private final static String COMPUTER_PLAYER_MONKEY_NAME = "Monkey";
-    private final static int PICK_STRATEGY_LOW_WEIGHT = 60;
-    private final static int PICK_STRATEGY_UNPLAYED_WEIGHT = 40;
-    private final static int PLAY_STRATEGY_HIGH_WEIGHT = 75;
-    private final static int PLAY_STRATEGY_UNPLAYED_WEIGHT = 25;
+    private final int HIGH_RANK = 13;
 
-    private final static String PLAYER_NAME = "Alice";
+    // game state
+    //
+    private class TestGameState implements GameState {
+
+        private final Set<Integer> played = new HashSet<>();
+
+        void addToPlayed(int rank) {
+            played.add(rank);
+        }
+        Set<Integer> getPlayed() {
+            return played;
+        }
+
+        @Override
+        public boolean isGameOver() {
+            return false;
+        }
+    }
+    
+    // player state
+    //
+    private class TestPlayerState implements PlayerState {
+        
+        private final String name;
+        private final Set<Integer> hand = new HashSet<>();
+        
+        TestPlayerState(String name) {
+            this.name = name;
+        }
+        
+        void addToHand(int rank) {
+            hand.add(rank);
+        }
+        Set<Integer> getHand() {
+            return hand;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public int getScore() {
+            return 0;
+        }
+    }
+    
+    // play choice
+    private class TestPlayChoice implements PlayChoice {
+        private final Map<Integer, Integer> weights = new HashMap<>();
+        
+        void addWeight(int rank, int weight) {
+            weights.put(rank, getWeight(rank) + weight);
+        }
+
+        int getWeight(int rank) {
+            return weights.containsKey(rank) ? weights.get(rank) : 0;
+        }
+    }
 
     // define two strategy types
     //
@@ -30,41 +87,54 @@ public class PlayerTest {
         public int getKey() { return key; }
     }
 
-    // define a pair of pick-card strategies
+    // strategy to pick low card
     //
-    private class PickLowCardStrategy implements PlayStrategy {
+    private class LowCardStrategy implements PlayStrategy {
 
         @Override
-        public int weighChoice(GameState gameState) {
-            // TODO
-            return 1;
-        }
-    }
-    private class PickUnplayedStrategy implements PlayStrategy {
+        public void consider(PlayerState playerState, GameState gameState, PlayChoice playChoice) {
+            
+            // expect a test state and choice
+            TestPlayerState testPlayerState = TestPlayerState.class.cast(playerState);
+            TestPlayChoice testPlayChoice = TestPlayChoice.class.cast(playChoice);
 
-        @Override
-        public int weighChoice(GameState gameState) {
-            // TODO
-            return 2;
+            // update weights with rank
+            testPlayerState.getHand().stream().forEach(rank -> testPlayChoice.addWeight(rank, HIGH_RANK - rank));
         }
     }
 
     // define a pair of play-card strategies
     //
-    private class PlayHighCardStrategy implements PlayStrategy {
+    private class HighCardStrategy implements PlayStrategy {
 
         @Override
-        public int weighChoice(GameState gameState) {
-            // TODO
-            return 3;
+        public void consider(PlayerState playerState, GameState gameState, PlayChoice playChoice) {
+
+            // expect a test state and choice
+            TestPlayerState testPlayerState = TestPlayerState.class.cast(playerState);
+            TestPlayChoice testPlayChoice = TestPlayChoice.class.cast(playChoice);
+
+            // update weights with rank
+            testPlayerState.getHand().stream().forEach(rank -> testPlayChoice.addWeight(rank, rank));
         }
     }
-    private class PlayUnplayedStrategy implements PlayStrategy {
+
+    // strategy to pick unplayed card
+    //
+    private class UnplayedStrategy implements PlayStrategy {
 
         @Override
-        public int weighChoice(GameState gameState) {
-            // TODO
-            return 4;
+        public void consider(PlayerState playerState, GameState gameState, PlayChoice playChoice) {
+
+            // expect a test state and choice
+            TestPlayerState testPlayerState = TestPlayerState.class.cast(playerState);
+            TestGameState testGameState = TestGameState.class.cast(gameState);
+            TestPlayChoice testPlayChoice = TestPlayChoice.class.cast(playChoice);
+
+            // assign weights based on if copy already played
+            testPlayerState.getHand().stream()
+                    .forEach(rank -> testPlayChoice.addWeight(rank,
+                            testGameState.getPlayed().contains(rank) ? 0 : HIGH_RANK));
         }
     }
 
@@ -72,73 +142,46 @@ public class PlayerTest {
     public void testComputerPlayer() {
 
         // use builder to create monkey player
-        Player player = new Player.Builder(COMPUTER_PLAYER_MONKEY_NAME, true)
-                .addPlayStrategy(TestStrategyType.PICK_CARD, PICK_STRATEGY_LOW_WEIGHT, new PickLowCardStrategy())
-                .addPlayStrategy(TestStrategyType.PICK_CARD, PICK_STRATEGY_UNPLAYED_WEIGHT, new PickUnplayedStrategy())
-                .addPlayStrategy(TestStrategyType.PLAY_CARD, PLAY_STRATEGY_HIGH_WEIGHT, new PlayHighCardStrategy())
-                .addPlayStrategy(TestStrategyType.PLAY_CARD, PLAY_STRATEGY_UNPLAYED_WEIGHT, new PlayUnplayedStrategy())
+        Player player = new Player.Builder(true)
+                .addPlayStrategy(TestStrategyType.PICK_CARD, new LowCardStrategy())
+                .addPlayStrategy(TestStrategyType.PICK_CARD, new UnplayedStrategy())
+                .addPlayStrategy(TestStrategyType.PLAY_CARD, new HighCardStrategy())
+                .addPlayStrategy(TestStrategyType.PLAY_CARD, new UnplayedStrategy())
                 .build();
-
-        // confirm basics
-        Assert.assertEquals(COMPUTER_PLAYER_MONKEY_NAME, player.getName());
         Assert.assertTrue(player.isComputerControlled());
-        Assert.assertEquals(0, player.getScore());
 
-        // weigh a pick choice
-        // TODO - game state, card choice
-        int weight = player.weighChoice(TestStrategyType.PICK_CARD, null);
-        Assert.assertEquals(PICK_STRATEGY_LOW_WEIGHT * 1 + PICK_STRATEGY_UNPLAYED_WEIGHT * 2, weight);
+        // player state
+        TestPlayerState playerState = new TestPlayerState("Alice");
+        playerState.addToHand(5);
+        playerState.addToHand(8);
+        playerState.addToHand(10);
 
-        // weigh a play choice
-        weight = player.weighChoice(TestStrategyType.PLAY_CARD, null);
-        Assert.assertEquals(PLAY_STRATEGY_HIGH_WEIGHT * 3 + PLAY_STRATEGY_UNPLAYED_WEIGHT * 4, weight);
-    }
+        // game state
+        TestGameState gameState = new TestGameState();
+        gameState.addToPlayed(5);
+        gameState.addToPlayed(8);
+        gameState.addToPlayed(2);
 
-    @Test
-    public void testHumanPlayer() {
+        // have player weigh pick choices
+        TestPlayChoice playChoice = new TestPlayChoice();
+        player.consider(TestStrategyType.PICK_CARD, playerState, gameState, playChoice);
+        Assert.assertEquals(HIGH_RANK - 5, playChoice.getWeight(5));
+        Assert.assertEquals(HIGH_RANK - 8, playChoice.getWeight(8));
+        Assert.assertEquals(HIGH_RANK - 10 + HIGH_RANK, playChoice.getWeight(10));
 
-        // use builder to create human player
-        Player player = new Player.Builder(PLAYER_NAME, false)
-                .build();
-
-        // confirm basics
-        Assert.assertEquals(PLAYER_NAME, player.getName());
-        Assert.assertFalse(player.isComputerControlled());
-        Assert.assertEquals(0, player.getScore());
-
-        // weigh a pick choice - no strategies means no weight
-        Assert.assertEquals(0, player.weighChoice(TestStrategyType.PICK_CARD, null));
-    }
-
-    @Test
-    public void testScore() {
-
-        // user builder to create human player, and start score at 100
-        Player player = new Player.Builder(PLAYER_NAME, false)
-                .setScore(100)
-                .build();
-
-        // confirm basics
-        Assert.assertEquals(PLAYER_NAME, player.getName());
-        Assert.assertFalse(player.isComputerControlled());
-        Assert.assertEquals(100, player.getScore());
-
-        // set score to 10
-        player.setScore(10);
-        Assert.assertEquals(10, player.getScore());
-
-        // increment score by 20
-        player.incrementScore(20);
-        Assert.assertEquals(30, player.getScore());
+        // have player weight play choices
+        playChoice = new TestPlayChoice();
+        player.consider(TestStrategyType.PLAY_CARD, playerState, gameState, playChoice);
+        Assert.assertEquals(5, playChoice.getWeight(5));
+        Assert.assertEquals(8, playChoice.getWeight(8));
+        Assert.assertEquals(10 + HIGH_RANK, playChoice.getWeight(10));
     }
 
     @Test
     public void testToString() {
 
         // user builder to create human player, and start score at 100
-        Player player = new Player.Builder(PLAYER_NAME, false)
-                .setScore(100)
-                .build();
+        Player player = new Player.Builder(false).build();
         System.out.println(player.toString());
         Assert.assertNotNull(player.toString());
     }

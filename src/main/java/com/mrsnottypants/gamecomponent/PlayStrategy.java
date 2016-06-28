@@ -5,7 +5,13 @@ package com.mrsnottypants.gamecomponent;
  */
 public interface PlayStrategy {
 
-    // TODO - pass 1+ cards
-    //
-    public int weighChoice(GameState gameState);
+    /**
+     * Updates playChoice with values/weight related to choices available to this strategy.
+     * For example: When a card needs to be played, the high-card strategy updates playChoices with weights based on
+     * card rank.
+     * @param playerState State of the player
+     * @param gameState State of the game
+     * @param playChoice Updated with values related to choices
+     */
+    public void consider(PlayerState playerState, GameState gameState, PlayChoice playChoice);
 }
